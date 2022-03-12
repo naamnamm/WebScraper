@@ -27,9 +27,7 @@ namespace WebScraper
 
             var rentalsHtml = htmlDocument.DocumentNode.Descendants("ul")
                 .Where(n => n.GetAttributeValue("id", "")
-                .Equals("curtain")).ToList();
-
-            //var rentalList = rentalsHtml[0].Descendants();
+                .Equals("search-results")).ToList();
 
 
             Console.WriteLine(rentalsHtml);
