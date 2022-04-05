@@ -6,6 +6,7 @@ namespace WebScraper
 {
     public class Rental
     {
+
         public string RentalID { get; set; }
 
         public string Title { get; set; }
@@ -19,7 +20,7 @@ namespace WebScraper
                 $"Title: {Title} \n" +
                 $"Location: {Location} \n" +
                 $"SquareFootage: {SquareFootage} \n" +
-                $"Price: {Price} ";
+                $"Price: {Price} \n";
 
             return formatString;
         }
