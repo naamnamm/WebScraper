@@ -1,10 +1,15 @@
-﻿using HtmlAgilityPack;
+﻿using FluentEmail.Core;
+using FluentEmail.Razor;
+using FluentEmail.Smtp;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Xml;
 using Topshelf;
 
@@ -12,7 +17,7 @@ namespace WebScraper
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
 
             List<Rental> rentalList = GetHTMLAsync();
@@ -22,14 +27,53 @@ namespace WebScraper
                 Console.WriteLine(item);
             }
 
+            try
+            {
+                // create a server
+                var sender = new SmtpSender(() => new SmtpClient("localhost")
+                {
+                    //for testing - set this to false
+                    EnableSsl = false,
+
+                    //send to papercut
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    Port = 25,
+
+                    //DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory,
+                    //PickupDirectoryLocation = @"C:\Users\naamp\Downloads"
+                });
+
+                StringBuilder template = new StringBuilder();
+                //Title
+                template.AppendLine("Title: @Model.Title");
+                template.AppendLine("<p> Location: @Model.Location </p>");
+                //template.AppendLine("<p> SquareFootage: @Model.SquareFootage </p>");
+                //template.AppendLine("<p> Price: @Model.Price </p>");
+                //template.AppendLine("<p> Link: <a href=@Model.Link/> </p>");
+
+                Email.DefaultSender = sender;
+                Email.DefaultRenderer = new RazorRenderer();
+
+                var email = await Email
+                    .From("tim@timco.com")
+                    .To("test@test.com", "Sue")
+                    .Subject("Thanks!")
+                    //.Body("Thanks for buying our product.")
+                    .UsingTemplate(template.ToString(), new { Title = "Tim", Location = "Bacon-Wrapped Bacon" })
+                    .SendAsync();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                throw;
+            }
+
         }
 
         private static List<Rental> GetHTMLAsync()
-        {
-           // var url = "https://washingtondc.craigslist.org/search/apa?query=apartment+or+rent&search_distance=2&postal=20896&availabilityMode=0&sale_date=2022-05-04";
+        {      
             var url = new URI("apartment", "1300", "1800", "0").ToString();
-
-            Console.WriteLine(url);
 
             var httpClient = new HttpClient();
             var task = httpClient.GetStringAsync(url);
@@ -97,6 +141,8 @@ namespace WebScraper
         }
     }
 }
+
+// var url = "https://washingtondc.craigslist.org/search/apa?query=apartment+or+rent&search_distance=2&postal=20896&availabilityMode=0&sale_date=2022-05-04";
 
 /* information to extract
 
