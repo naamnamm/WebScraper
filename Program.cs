@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Topshelf;
 
@@ -25,7 +26,10 @@ namespace WebScraper
 
         private static List<Rental> GetHTMLAsync()
         {
-            var url = "https://washingtondc.craigslist.org/search/apa?query=apartment+or+rent&search_distance=2&postal=20896&availabilityMode=0&sale_date=2022-03-21";
+           // var url = "https://washingtondc.craigslist.org/search/apa?query=apartment+or+rent&search_distance=2&postal=20896&availabilityMode=0&sale_date=2022-05-04";
+            var url = new URI("apartment", "1300", "1800", "0").ToString();
+
+            Console.WriteLine(url);
 
             var httpClient = new HttpClient();
             var task = httpClient.GetStringAsync(url);
@@ -50,29 +54,42 @@ namespace WebScraper
         {
             List<Rental> rentals = new List<Rental>();
 
+           
             // loop through rentalList (from HTML), get info, then add it to a rentals
             foreach (var rental in rentalList)
             {
-                var resultUrl = rental.Descendants("a").FirstOrDefault().GetAttributeValue("href", "");
+                var resultUrl = rental.Descendants("a").FirstOrDefault()?
+                .GetAttributeValue("href", "") ??
+                String.Empty;
+
                 if (!resultUrl.Contains("washingtondc")) return rentals;
 
                 var rentalID = rental.GetAttributeValue("data-pid", "");
 
                 var rentalTitle = rental.Descendants("h3")
-                .Where(n => n.GetAttributeValue("class", "").Equals("result-heading")).FirstOrDefault().InnerText.Trim();
+                .Where(n => n.GetAttributeValue("class", "").Equals("result-heading")).FirstOrDefault()?
+                .InnerText.Trim() ??
+                String.Empty;
 
                 var rentalLocation = rental.Descendants("span")
-                .Where(n => n.GetAttributeValue("class", "").Equals("result-hood")).FirstOrDefault().InnerText.Trim();
-
-                var rentalPrice = rental.Descendants("span")
-                .Where(n => n.GetAttributeValue("class", "").Equals("result-price")).FirstOrDefault().InnerText;
+                .Where(n => n.GetAttributeValue("class", "").Equals("result-hood")).FirstOrDefault()?
+                .InnerText.Trim().Trim('(', ')') ??
+                String.Empty;
 
                 var rentalSquarefootage = rental.Descendants("span")
                 .Where(n => n.GetAttributeValue("class", "").Equals("housing")).FirstOrDefault()?
-                .InnerText.Replace("\n", String.Empty).Replace("\n", String.Empty).Trim() ??
+                .InnerText.Replace("\n", String.Empty).Replace(" ", "") ??
                 String.Empty;
 
-                rentals.Add(new Rental() { RentalID = rentalID, Title = rentalTitle, Location = rentalLocation, Price = rentalPrice, SquareFootage = rentalSquarefootage });
+                string trimmedRentalSqFt = rentalSquarefootage.Length > 0 ?
+                    rentalSquarefootage.Remove(rentalSquarefootage.Length - 1) : String.Empty;
+
+                var rentalPrice = rental.Descendants("span")
+                .Where(n => n.GetAttributeValue("class", "").Equals("result-price")).FirstOrDefault()?
+                .InnerText.Trim() ??
+                String.Empty;                   
+
+                rentals.Add(new Rental(rentalID, rentalTitle,  rentalLocation, trimmedRentalSqFt, rentalPrice, resultUrl));
 
             }
 
