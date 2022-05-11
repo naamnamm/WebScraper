@@ -24,7 +24,11 @@ namespace WebScraper
 
             foreach (var item in rentalList)
             {
-                Console.WriteLine(item);
+                Console.WriteLine(item.Title);
+                Console.WriteLine(item.Location);
+                Console.WriteLine(item.SquareFootage);
+                Console.WriteLine(item.Link);
+
             }
 
             try
@@ -47,9 +51,35 @@ namespace WebScraper
                 //Title
                 template.AppendLine("Title: @Model.Title");
                 template.AppendLine("<p> Location: @Model.Location </p>");
-                //template.AppendLine("<p> SquareFootage: @Model.SquareFootage </p>");
-                //template.AppendLine("<p> Price: @Model.Price </p>");
-                //template.AppendLine("<p> Link: <a href=@Model.Link/> </p>");
+                template.AppendLine("<p> SquareFootage: @Model.SquareFootage </p>");
+                template.AppendLine("<p> Price: @Model.Price </p>");
+                template.AppendLine("<p> Link: <a href=@Model.Link/> </p>");
+
+                var template2 = @"  
+                    Hi @Model.Name here is a list 
+                    @foreach(var i in Model.Numbers) { @i }
+                ";
+
+                var model = new { Name = "Naam", Numbers = new[] { "1", "2", "3" } };
+
+                //WIP
+                var template3 = @"  
+                    Hi @Model.Name here is your daily rental list. 
+                    @for(var i = 0; i < @Model.RentalList.Count; i++) 
+                    { 
+                        <p>@i</p>
+                    }
+                    @foreach(var item in @Model.RentalList) 
+                    { 
+
+                        <p>Title: @item.Title</p>
+                        <p>Location: @item.Location</p>
+                        <p>SquareFootage: @item.SquareFootage</p>
+                        <p>Link: @item.Link</p>
+                    }
+                ";
+
+                var model3 = new { Name = "Naam", RentalList = rentalList };
 
                 Email.DefaultSender = sender;
                 Email.DefaultRenderer = new RazorRenderer();
@@ -59,8 +89,11 @@ namespace WebScraper
                     .To("test@test.com", "Sue")
                     .Subject("Thanks!")
                     //.Body("Thanks for buying our product.")
-                    .UsingTemplate(template.ToString(), new { Title = "Tim", Location = "Bacon-Wrapped Bacon" })
+                    //.UsingTemplate(template.ToString(), 
+                    //new { Title = "Tim", Location = "Bacon-Wrapped Bacon", SquareFootage = "SquareFootage", Price = "Price", Link = "Link" })
+                    .UsingTemplate(template3, model3)
                     .SendAsync();
+
 
             }
             catch (Exception ex)
