@@ -5,6 +5,7 @@ using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Mail;
 using System.Text;
@@ -24,76 +25,64 @@ namespace WebScraper
 
             foreach (var item in rentalList)
             {
-                Console.WriteLine(item.Title);
-                Console.WriteLine(item.Location);
-                Console.WriteLine(item.SquareFootage);
-                Console.WriteLine(item.Link);
-
+                Console.WriteLine(item);
             }
 
             try
             {
                 // create a server
-                var sender = new SmtpSender(() => new SmtpClient("localhost")
+                var sender = new SmtpSender(() => new SmtpClient()
                 {
-                    //for testing - set this to false
-                    EnableSsl = false,
-
                     //send to papercut
-                    DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Port = 25,
+                    //for testing - set this to false
+                    //EnableSsl = false,
+                    //DeliveryMethod = SmtpDeliveryMethod.Network,
+                    //Host = "localhost",
+                    //Port = 25,
 
-                    //DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory,
-                    //PickupDirectoryLocation = @"C:\Users\naamp\Downloads"
+                    //sender pondpattohs@gmail.com connect to gmail server
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    EnableSsl = true,
+                    Host = "smtp.gmail.com",
+                    Port = 587,
+                    Credentials = new NetworkCredential("email", "password")
+
                 });
 
-                StringBuilder template = new StringBuilder();
-                //Title
-                template.AppendLine("Title: @Model.Title");
-                template.AppendLine("<p> Location: @Model.Location </p>");
-                template.AppendLine("<p> SquareFootage: @Model.SquareFootage </p>");
-                template.AppendLine("<p> Price: @Model.Price </p>");
-                template.AppendLine("<p> Link: <a href=@Model.Link/> </p>");
 
-                var template2 = @"  
-                    Hi @Model.Name here is a list 
-                    @foreach(var i in Model.Numbers) { @i }
+                var template = @"  
+                    Hey @Model.Name, here is your daily rental list. 
+                    @for(var i = 1; i < @Model.RentalList.Count; i++) 
+                    {                        
+                        <p>
+                            <b>Item:</b> @i
+                            <br>
+                            <b>Title:</b> @Model.RentalList[i].Title 
+                            <br>
+                            <b>Location:</b> @Model.RentalList[i].Location 
+                            <br>
+                            <b>SquareFootage:</b> @Model.RentalList[i].SquareFootage 
+                            <br>
+                            <b>Price:</b> @Model.RentalList[i].Price
+                            <br>
+                            <b>Link:</b> @Model.RentalList[i].Link
+                        </p>
+                    }
+
                 ";
 
-                var model = new { Name = "Naam", Numbers = new[] { "1", "2", "3" } };
-
-                //WIP
-                var template3 = @"  
-                    Hi @Model.Name here is your daily rental list. 
-                    @for(var i = 0; i < @Model.RentalList.Count; i++) 
-                    { 
-                        <p>@i</p>
-                    }
-                    @foreach(var item in @Model.RentalList) 
-                    { 
-
-                        <p>Title: @item.Title</p>
-                        <p>Location: @item.Location</p>
-                        <p>SquareFootage: @item.SquareFootage</p>
-                        <p>Link: @item.Link</p>
-                    }
-                ";
-
-                var model3 = new { Name = "Naam", RentalList = rentalList };
+                var model = new { Name = "Naam", RentalList = rentalList };
 
                 Email.DefaultSender = sender;
                 Email.DefaultRenderer = new RazorRenderer();
 
                 var email = await Email
-                    .From("tim@timco.com")
-                    .To("test@test.com", "Sue")
-                    .Subject("Thanks!")
-                    //.Body("Thanks for buying our product.")
-                    //.UsingTemplate(template.ToString(), 
-                    //new { Title = "Tim", Location = "Bacon-Wrapped Bacon", SquareFootage = "SquareFootage", Price = "Price", Link = "Link" })
-                    .UsingTemplate(template3, model3)
+                    .From("pondpattohs@gmail.com")
+                    .To("naam.pt@gmail.com", "Naam")
+                    .Subject("Daily Rental List")
+                    .UsingTemplate(template, model)
                     .SendAsync();
-
 
             }
             catch (Exception ex)
@@ -102,6 +91,11 @@ namespace WebScraper
                 throw;
             }
 
+        }
+
+        private static void sendEmail()
+        {
+            throw new NotImplementedException();
         }
 
         private static List<Rental> GetHTMLAsync()
@@ -253,3 +247,8 @@ namespace WebScraper
 //    Console.WriteLine();
 
 //}
+
+/*<p>Title: @item.Title</p>
+                        <p>Location: @item.Location</p>
+                        <p>SquareFootage: @item.SquareFootage</p>
+                        <p>Link: @item.Link</p>*/
