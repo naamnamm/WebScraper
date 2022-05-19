@@ -2,8 +2,10 @@
 using FluentEmail.Razor;
 using FluentEmail.Smtp;
 using HtmlAgilityPack;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -21,16 +23,24 @@ namespace WebScraper
         static async Task Main(string[] args)
         {
 
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config.json", optional: false);
+
+            IConfiguration config = builder.Build();
+
+            var mail = config.GetSection("Mail").Get<Mail>();
+
             List<Rental> rentalList = GetHTMLAsync();
 
-            foreach (var item in rentalList)
-            {
-                Console.WriteLine(item);
-            }
+            await sendEmail(rentalList, mail);
 
+        }
+
+        private static async Task sendEmail(List<Rental> rentalList, Mail mail)
+        {
             try
             {
-                // create a server
                 var sender = new SmtpSender(() => new SmtpClient()
                 {
                     //send to papercut
@@ -44,9 +54,9 @@ namespace WebScraper
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
                     EnableSsl = true,
-                    Host = "smtp.gmail.com",
+                    Host = "smtp.mail.yahoo.com",
                     Port = 587,
-                    Credentials = new NetworkCredential("email", "password")
+                    Credentials = new NetworkCredential(mail.Username, mail.Password)
 
                 });
 
@@ -78,24 +88,18 @@ namespace WebScraper
                 Email.DefaultRenderer = new RazorRenderer();
 
                 var email = await Email
-                    .From("pondpattohs@gmail.com")
+                    .From("naam.namm@yahoo.com")
                     .To("naam.pt@gmail.com", "Naam")
                     .Subject("Daily Rental List")
                     .UsingTemplate(template, model)
                     .SendAsync();
 
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine(e);
                 throw;
             }
-
-        }
-
-        private static void sendEmail()
-        {
-            throw new NotImplementedException();
         }
 
         private static List<Rental> GetHTMLAsync()
@@ -252,3 +256,79 @@ namespace WebScraper
                         <p>Location: @item.Location</p>
                         <p>SquareFootage: @item.SquareFootage</p>
                         <p>Link: @item.Link</p>*/
+
+
+
+//List<Rental> rentalList = GetHTMLAsync();
+
+//foreach (var item in rentalList)
+//{
+//    Console.WriteLine(item);
+//}
+
+//try
+//{
+//    // create a server
+//    var sender = new SmtpSender(() => new SmtpClient()
+//    {
+//        //send to papercut
+//        //for testing - set this to false
+//        //EnableSsl = false,
+//        //DeliveryMethod = SmtpDeliveryMethod.Network,
+//        //Host = "localhost",
+//        //Port = 25,
+
+//        //sender pondpattohs@gmail.com connect to gmail server
+//        DeliveryMethod = SmtpDeliveryMethod.Network,
+//        UseDefaultCredentials = false,
+//        EnableSsl = true,
+//        Host = "smtp.gmail.com",
+//        Port = 587,
+//        //need to change email to actual email and password
+//        //Q: can I use other server to send email to my account
+//        //because I don't want to put in my credentials in here
+//        //and I don't want to set up my gmail account to be less secure
+//        Credentials = new NetworkCredential("email", "password")
+
+//    });
+
+
+//    var template = @"  
+//                    Hey @Model.Name, here is your daily rental list. 
+//                    @for(var i = 1; i < @Model.RentalList.Count; i++) 
+//                    {                        
+//                        <p>
+//                            <b>Item:</b> @i
+//                            <br>
+//                            <b>Title:</b> @Model.RentalList[i].Title 
+//                            <br>
+//                            <b>Location:</b> @Model.RentalList[i].Location 
+//                            <br>
+//                            <b>SquareFootage:</b> @Model.RentalList[i].SquareFootage 
+//                            <br>
+//                            <b>Price:</b> @Model.RentalList[i].Price
+//                            <br>
+//                            <b>Link:</b> @Model.RentalList[i].Link
+//                        </p>
+//                    }
+
+//                ";
+
+//    var model = new { Name = "Naam", RentalList = rentalList };
+
+//    Email.DefaultSender = sender;
+//    Email.DefaultRenderer = new RazorRenderer();
+
+//    var email = await Email
+//        .From("pondpattohs@gmail.com")
+//        .To("naam.pt@gmail.com", "Naam")
+//        .Subject("Daily Rental List")
+//        .UsingTemplate(template, model)
+//        .SendAsync();
+
+//}
+//catch (Exception ex)
+//{
+//    Console.WriteLine(ex);
+//    throw;
+//}
